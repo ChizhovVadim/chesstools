@@ -1,4 +1,4 @@
-package see
+package searchrand
 
 import (
 	. "github.com/ChizhovVadim/chesstools/pkg/chess"
@@ -8,7 +8,7 @@ var pieceValuesSEE = [...]int{Empty: 0, Pawn: 1, Knight: 4, Bishop: 4, Rook: 6, 
 
 // Static Exchange Evaluation
 // https://www.chessprogramming.org/Static_Exchange_Evaluation
-func See(pos *Position, mv Move) int {
+func see(pos *Position, mv Move) int {
 	var from = mv.From()
 	var to = mv.To()
 	var pc = mv.MovingPiece()

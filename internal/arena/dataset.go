@@ -3,11 +3,11 @@ package arena
 import (
 	"context"
 	"log"
-	"math/rand/v2"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/ChizhovVadim/chesstools/internal/searchrand"
 	"github.com/ChizhovVadim/chesstools/pkg/game"
 	"github.com/ChizhovVadim/chesstools/pkg/uci"
 	"golang.org/x/sync/errgroup"
@@ -68,13 +68,15 @@ func playDatasetGames(
 		return err
 	}
 
+	var searcher = searchrand.New(1)
+
 	for {
 		var g, _ = game.NewGame("")
 		g.Date = time.Now()
 		g.White = player.Name()
 		g.Black = g.White
 
-		if ok := playRandomOpening(&g, openingSize); !ok {
+		if ok := searcher.PlayRandomOpening(&g, openingSize); !ok {
 			continue
 		}
 
@@ -92,25 +94,4 @@ func playDatasetGames(
 			}
 		}
 	}
-}
-
-func playRandomOpening(
-	g *game.Game,
-	openingSize int,
-) bool {
-	//TODO использовать SEE, чтобы не делать совсем тупые ходы.
-	for range openingSize {
-		var ml = g.Position.GenerateLegalMoves()
-		if len(ml) == 0 {
-			return false
-		}
-		var move = ml[rand.IntN(len(ml))]
-		if !g.MakeMove(game.MoveItem{
-			Move:      move,
-			IsOpening: true,
-		}) {
-			return false
-		}
-	}
-	return true
 }
