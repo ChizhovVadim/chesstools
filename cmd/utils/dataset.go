@@ -32,7 +32,7 @@ func datasetHandler(args []string) error {
 
 	var di = &diContainer{}
 	return arena.GenerateDataset(context.Background(), concurrency, gamesCount, openingSize,
-		func() *uci.Process { return di.BuildEngine(player) },
+		di.EngineBuilder(player),
 		timeLimit,
 		outputGamePath,
 	)

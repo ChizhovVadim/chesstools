@@ -15,30 +15,44 @@ type diContainer struct {
 
 func (di *diContainer) EngineConfigs() []EngineConfig {
 	if di.engineConfigs == nil {
-		var cfg, err = loadEngineConfigs("engines.json")
+		var engineConfigs, err = loadEngineConfigs("engines.json")
 		if err != nil {
 			log.Fatalf("load engine configs failed %v", err)
 		}
-		di.engineConfigs = cfg
+		for i := range engineConfigs {
+			engineConfigs[i].Command = cli.MapPath(engineConfigs[i].Command)
+		}
+		di.engineConfigs = engineConfigs
 	}
 	return di.engineConfigs
 }
 
-func (di *diContainer) BuildEngine(key string) *uci.Process {
-	if key == "" {
-		key = "counter55"
-	}
+func (di *diContainer) EngineBuilder(key string) func() *uci.Process {
 	var configs = di.EngineConfigs()
-	var index = slices.IndexFunc(configs, func(e EngineConfig) bool {
-		return e.Name == key
-	})
-	if index == -1 {
-		log.Fatalf("engine %v config not found", key)
+	if len(configs) == 0 {
+		log.Fatalf("empty engine configs")
 	}
-	var info = configs[index]
-	var args []string
-	if info.Arg != "" {
-		args = strings.Fields(info.Arg)
+	var config EngineConfig
+	if key == "" {
+		config = configs[0]
+	} else {
+		var index = slices.IndexFunc(configs, func(e EngineConfig) bool {
+			return e.Name == key
+		})
+		if index == -1 {
+			log.Fatalf("engine %v config not found", key)
+		}
+		config = configs[index]
 	}
-	return uci.NewProcess(key, cli.MapPath(info.Command), args, info.Options)
+	return func() *uci.Process {
+		var args []string
+		if config.Arg != "" {
+			args = strings.Fields(config.Arg)
+		}
+		return uci.NewProcess(config.Name, config.Command, args, config.Options)
+	}
+}
+
+func (di *diContainer) BuildEngine(key string) *uci.Process {
+	return di.EngineBuilder(key)()
 }

@@ -31,12 +31,8 @@ func matchHandler(args []string) error {
 
 	var di = &diContainer{}
 	return arena.PlayMatch(context.Background(), concurrency, openingsPath, outputGamePath,
-		func() *uci.Process {
-			return di.BuildEngine(playerA)
-		},
-		func() *uci.Process {
-			return di.BuildEngine(playerB)
-		},
+		di.EngineBuilder(playerA),
+		di.EngineBuilder(playerB),
 		timeLimit,
 	)
 }
