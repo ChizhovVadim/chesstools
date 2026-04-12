@@ -33,6 +33,7 @@ func (p *Process) Name() string {
 }
 
 func (p *Process) Init() error {
+	//TODO use exec.CommandContext()?
 	var cmd = exec.Command(p.path, p.args...)
 	in, err := cmd.StdinPipe()
 	if err != nil {

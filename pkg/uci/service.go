@@ -93,6 +93,8 @@ func (s *Service) Go(
 		fmt.Fprintf(s.w, "movetime %v", tc.MoveTime)
 	} else if tc.Nodes != 0 {
 		fmt.Fprintf(s.w, "nodes %v", tc.Nodes)
+	} else if tc.Depth != 0 {
+		fmt.Fprintf(s.w, "depth %v", tc.Depth)
 	}
 	fmt.Fprintln(s.w)
 
