@@ -26,7 +26,11 @@ func PlayMatch(
 	timeLimit uci.LimitsType,
 ) error {
 	log.Println("PlayMatch started")
-	defer log.Println("PlayMatch finished")
+	start := time.Now()
+	defer func() {
+		log.Println("PlayMatch finished",
+			time.Since(start))
+	}()
 
 	var openings = make(chan game.Game)
 	var games = make(chan game.Game)
@@ -96,7 +100,7 @@ func prepareOpenings(
 }
 
 func saveGames(
-	ctx context.Context,
+	_ context.Context,
 	outputGamePath string,
 	games <-chan game.Game,
 ) error {

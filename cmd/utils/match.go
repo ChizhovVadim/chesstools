@@ -19,12 +19,13 @@ func matchHandler(args []string) error {
 		openingsPath   = ""
 		outputGamePath = cli.MapPath(fmt.Sprintf("~/chess/games/match-%v.pgn", date.Format("2006-01-02_15_04")))
 		concurrency    = runtime.GOMAXPROCS(0)
-		timeLimit      = uci.LimitsType{Nodes: 100_000}
+		nodes          = 100_000
 		playerA        = ""
 		playerB        = ""
 	)
 
 	var flagset = flag.NewFlagSet("", flag.ExitOnError)
+	flagset.IntVar(&nodes, "nodes", nodes, "")
 	flagset.StringVar(&playerA, "playerA", playerA, "")
 	flagset.StringVar(&playerB, "playerB", playerB, "")
 	flagset.Parse(args)
@@ -33,6 +34,6 @@ func matchHandler(args []string) error {
 	return arena.PlayMatch(context.Background(), concurrency, openingsPath, outputGamePath,
 		di.EngineBuilder(playerA),
 		di.EngineBuilder(playerB),
-		timeLimit,
+		uci.LimitsType{Nodes: nodes},
 	)
 }
