@@ -27,8 +27,15 @@ func NewService(r io.Reader, w io.Writer) *Service {
 	}
 }
 
-func (s *Service) Quit() {
-	fmt.Fprintln(s.w, "quit")
+func (s *Service) Init(options []Option) error {
+	s.Uci()
+	for _, option := range options {
+		s.SetOption(option)
+	}
+	if !s.IsReady() {
+		return fmt.Errorf("engine not ready")
+	}
+	return nil
 }
 
 func (s *Service) Uci() EngineInfo {

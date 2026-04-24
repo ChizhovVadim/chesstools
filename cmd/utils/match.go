@@ -30,10 +30,28 @@ func matchHandler(args []string) error {
 	flagset.StringVar(&playerB, "playerB", playerB, "")
 	flagset.Parse(args)
 
+	var tl = uci.LimitsType{Nodes: nodes}
+
 	var di = &diContainer{}
 	return arena.PlayMatch(context.Background(), concurrency, openingsPath, outputGamePath,
-		di.EngineBuilder(playerA),
-		di.EngineBuilder(playerB),
-		uci.LimitsType{Nodes: nodes},
+		newPlayer("", tl, di.MustEngineConfig(playerA)),
+		newPlayer("", tl, di.MustEngineConfig(playerB)),
 	)
+}
+
+func newPlayer(
+	name string,
+	timeLimit uci.LimitsType,
+	engineConfig EngineConfig,
+) arena.PlayerConfig {
+	if name == "" {
+		name = engineConfig.Name
+	}
+	return arena.PlayerConfig{
+		Name:      name,
+		TimeLimit: timeLimit,
+		Command:   engineConfig.Command,
+		Arg:       engineConfig.Arg,
+		Options:   engineConfig.Options,
+	}
 }

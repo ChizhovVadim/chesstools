@@ -2,68 +2,53 @@ package uci
 
 import (
 	"fmt"
+	"io"
 	"os/exec"
+	"strings"
 )
 
+// owner
 type Process struct {
-	name    string
-	path    string
-	args    []string
-	options []Option
-	cmd     *exec.Cmd
-	*Service
+	cmd *exec.Cmd
+	r   io.ReadCloser
+	w   io.WriteCloser
 }
 
-func NewProcess(
-	name string,
-	path string,
-	args []string,
-	options []Option,
-) *Process {
-	return &Process{
-		name:    name,
-		path:    path,
-		args:    args,
-		options: options,
+func Start(path string, arg string) (*Process, error) {
+	var args []string
+	if arg != "" {
+		args = strings.Fields(arg)
 	}
-}
-
-func (p *Process) Name() string {
-	return p.name
-}
-
-func (p *Process) Init() error {
 	//TODO use exec.CommandContext()?
-	var cmd = exec.Command(p.path, p.args...)
+	var cmd = exec.Command(path, args...)
 	in, err := cmd.StdinPipe()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	out, err := cmd.StdoutPipe()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	err = cmd.Start()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	p.cmd = cmd
-	p.Service = NewService(out, in)
-	//p.Service = NewService(out, io.MultiWriter(in, os.Stdout)) //Для отладки
-	p.Uci()
-	for _, option := range p.options {
-		p.SetOption(option)
-	}
-	if !p.IsReady() {
-		return fmt.Errorf("engine not ready")
-	}
-	return nil
+	return &Process{
+		r:   out,
+		w:   in,
+		cmd: cmd,
+	}, nil
 }
 
 func (p *Process) Close() error {
-	if p.cmd == nil {
-		return nil
-	}
-	p.Quit()
+	fmt.Fprintln(p.w, "quit")
 	return p.cmd.Wait()
+}
+
+func (p *Process) Reader() io.Reader {
+	return p.r
+}
+
+func (p *Process) Writer() io.Writer {
+	return p.w
 }

@@ -1,4 +1,4 @@
-package searchrand
+package dataset
 
 import (
 	"math/rand/v2"
@@ -21,7 +21,7 @@ type Searcher struct {
 	}
 }
 
-func New(margin int) *Searcher {
+func NewSearcher(margin int) *Searcher {
 	return &Searcher{margin: margin}
 }
 

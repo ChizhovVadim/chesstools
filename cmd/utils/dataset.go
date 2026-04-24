@@ -7,8 +7,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/ChizhovVadim/chesstools/internal/arena"
 	"github.com/ChizhovVadim/chesstools/internal/cli"
+	"github.com/ChizhovVadim/chesstools/internal/dataset"
 	"github.com/ChizhovVadim/chesstools/pkg/uci"
 )
 
@@ -31,9 +31,11 @@ func datasetHandler(args []string) error {
 	flagset.Parse(args)
 
 	var di = &diContainer{}
-	return arena.GenerateDataset(context.Background(), concurrency, gamesCount, openingSize,
-		di.EngineBuilder(player),
-		timeLimit,
+	_ = di
+	return dataset.GenerateDataset(context.Background(), concurrency, gamesCount, openingSize,
+		dataset.PlayerConfig{
+			TimeLimit: timeLimit,
+		},
 		outputGamePath,
 	)
 }

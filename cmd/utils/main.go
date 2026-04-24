@@ -11,6 +11,8 @@ func main() {
 	app.AddCommand("gui", guiHandler)
 	app.AddCommand("arena", matchHandler)
 	app.AddCommand("dataset", datasetHandler)
+	app.AddCommand("quality", qualityHandler)
+	app.AddCommand("tactic", tacticHandler)
 	var err = app.Run()
 	if err != nil {
 		log.Println("run failed",

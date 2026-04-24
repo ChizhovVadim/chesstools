@@ -13,17 +13,29 @@ import (
 	"github.com/ChizhovVadim/chesstools/pkg/game"
 	"github.com/ChizhovVadim/chesstools/pkg/pgn"
 	"github.com/ChizhovVadim/chesstools/pkg/uci"
-
 	"golang.org/x/sync/errgroup"
 )
+
+type PlayerConfig struct {
+	Name      string
+	TimeLimit uci.LimitsType
+	Command   string
+	Arg       string
+	Options   []uci.Option
+}
+
+type Player struct {
+	Name      string
+	TimeLimit uci.LimitsType
+	*uci.Service
+}
 
 func PlayMatch(
 	ctx context.Context,
 	concurrency int,
 	openingsPath string,
 	outputGamePath string,
-	playerABuilder, playerBBuilder func() *uci.Process,
-	timeLimit uci.LimitsType,
+	playerA, playerB PlayerConfig,
 ) error {
 	log.Println("PlayMatch started")
 	start := time.Now()
@@ -49,7 +61,7 @@ func PlayMatch(
 		wg.Add(1)
 		g.Go(func() error {
 			defer wg.Done()
-			return playGames(ctx, playerABuilder, playerBBuilder, timeLimit, openings, games)
+			return playGames(ctx, playerA, playerB, openings, games)
 		})
 	}
 	g.Go(func() error {
@@ -146,36 +158,41 @@ func saveGames(
 
 func playGames(
 	ctx context.Context,
-	playerABuilder, playerBBuilder func() *uci.Process,
-	timeLimit uci.LimitsType,
+	playerAConfig, playerBConfig PlayerConfig,
 	openings <-chan game.Game,
 	games chan<- game.Game,
 ) error {
-	var playerA = playerABuilder()
-	defer playerA.Close()
-	if err := playerA.Init(); err != nil {
-		return err
-	}
+	var configs = [2]PlayerConfig{playerAConfig, playerBConfig}
+	var players [2]Player
 
-	var playerB = playerBBuilder()
-	defer playerB.Close()
-	if err := playerB.Init(); err != nil {
-		return err
+	for i, config := range configs {
+		var eng, err = uci.Start(config.Command, config.Arg)
+		if err != nil {
+			return err
+		}
+		defer eng.Close()
+
+		var player = Player{
+			Name:      config.Name,
+			TimeLimit: config.TimeLimit,
+			Service:   uci.NewService(eng.Reader(), eng.Writer()),
+		}
+		if err := player.Service.Init(config.Options); err != nil {
+			return err
+		}
+		players[i] = player
 	}
 
 	for g := range openings {
-		var white, black *uci.Process
+		var white, black Player
 		if g.Round%2 == 1 {
-			white = playerA
-			black = playerB
+			white = players[0]
+			black = players[1]
 		} else {
-			white = playerB
-			black = playerA
+			white = players[1]
+			black = players[0]
 		}
-		g.Date = time.Now()
-		g.White = white.Name()
-		g.Black = black.Name()
-		var err = playGame(&g, white.Service, black.Service, timeLimit)
+		var err = playGame(&g, white, black)
 		if err != nil {
 			return err
 		}
@@ -189,19 +206,23 @@ func playGames(
 	return nil
 }
 
-func playGame(g *game.Game, white, black *uci.Service, timeLimit uci.LimitsType) error {
+func playGame(g *game.Game, white, black Player) error {
+	g.Date = time.Now()
+	g.White = white.Name
+	g.Black = black.Name
+
 	white.UciNewgame()
 	black.UciNewgame()
 
 	for g.Result == game.GameResultNone {
-		var activePlayer *uci.Service
+		var activePlayer Player
 		if g.WhiteTurn() {
 			activePlayer = white
 		} else {
 			activePlayer = black
 		}
 		activePlayer.Position(g)
-		var sr, err = activePlayer.Go(g, timeLimit, nil)
+		var sr, err = activePlayer.Go(g, activePlayer.TimeLimit, nil)
 		if err != nil {
 			return err
 		}

@@ -4,8 +4,10 @@ import (
 	"flag"
 
 	"github.com/ChizhovVadim/chesstools/internal/gui"
+	"github.com/ChizhovVadim/chesstools/pkg/uci"
 )
 
+// игра с uci движком в консоли
 func guiHandler(args []string) error {
 	var engineKey = ""
 
@@ -15,10 +17,15 @@ func guiHandler(args []string) error {
 
 	var di = &diContainer{}
 
-	var eng = di.BuildEngine(engineKey)
-	defer eng.Close()
-	if err := eng.Init(); err != nil {
+	var engConfig = di.MustEngineConfig(engineKey)
+	var process, err = uci.Start(engConfig.Command, engConfig.Arg)
+	if err != nil {
 		return err
 	}
-	return gui.Run(eng.Service)
+	defer process.Close()
+	var service = uci.NewService(process.Reader(), process.Writer())
+	if err := service.Init(engConfig.Options); err != nil {
+		return err
+	}
+	return gui.Run(service)
 }

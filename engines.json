@@ -1,6 +1,9 @@
 [
-	     {
-	       "name": "counter55",
-	       "command": "~/Projects/github/CounterGo/counter"
-	     }
+	{
+		"name": "countergo",
+		"command": "~/Projects/github/CounterGo/counter",
+		"options": [
+			{ "name": "Hash", "value": "128" }
+		]
+	}
 ]

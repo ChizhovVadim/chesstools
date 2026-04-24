@@ -3,10 +3,8 @@ package main
 import (
 	"log"
 	"slices"
-	"strings"
 
 	"github.com/ChizhovVadim/chesstools/internal/cli"
-	"github.com/ChizhovVadim/chesstools/pkg/uci"
 )
 
 type diContainer struct {
@@ -27,32 +25,28 @@ func (di *diContainer) EngineConfigs() []EngineConfig {
 	return di.engineConfigs
 }
 
-func (di *diContainer) EngineBuilder(key string) func() *uci.Process {
+func (di *diContainer) EngineConfig(key string) (EngineConfig, bool) {
 	var configs = di.EngineConfigs()
 	if len(configs) == 0 {
-		log.Fatalf("empty engine configs")
+		return EngineConfig{}, false
 	}
-	var config EngineConfig
 	if key == "" {
-		config = configs[0]
-	} else {
-		var index = slices.IndexFunc(configs, func(e EngineConfig) bool {
-			return e.Name == key
-		})
-		if index == -1 {
-			log.Fatalf("engine %v config not found", key)
-		}
-		config = configs[index]
+		return configs[0], true
 	}
-	return func() *uci.Process {
-		var args []string
-		if config.Arg != "" {
-			args = strings.Fields(config.Arg)
-		}
-		return uci.NewProcess(config.Name, config.Command, args, config.Options)
+	var index = slices.IndexFunc(configs, func(e EngineConfig) bool {
+		return e.Name == key
+	})
+	if index == -1 {
+		return EngineConfig{}, false
+		//log.Fatalf("engine %v config not found", key)
 	}
+	return configs[index], true
 }
 
-func (di *diContainer) BuildEngine(key string) *uci.Process {
-	return di.EngineBuilder(key)()
+func (di *diContainer) MustEngineConfig(key string) EngineConfig {
+	var config, ok = di.EngineConfig(key)
+	if !ok {
+		log.Fatalf("engine %v config not found", key)
+	}
+	return config
 }
